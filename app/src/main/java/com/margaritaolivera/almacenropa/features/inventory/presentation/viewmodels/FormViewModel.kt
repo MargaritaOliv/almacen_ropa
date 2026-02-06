@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prenda
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.CreatePrendaUseCase
-import com.margaritaolivera.almacenropa.features.inventory.presentation.screens.FormUiState
+import com.margaritaolivera.almacenropa.features.inventory.presentation.viewmodels.FormUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
