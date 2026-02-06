@@ -17,6 +17,7 @@ class InventoryRepositoryImpl(private val appContainer: AppContainer) : Inventor
             val prendas = dtos.map { it.toDomain() }
             Result.success(prendas)
         } catch (e: Exception) {
+            e.printStackTrace()
             Result.failure(e)
         }
     }
@@ -59,7 +60,6 @@ class InventoryRepositoryImpl(private val appContainer: AppContainer) : Inventor
 
     override suspend fun updateStock(id: Int, cantidad: Int): Result<Prenda> {
         return try {
-            // Enviamos el objeto con { "cantidad": X } para el PATCH
             val response = api.updateStock(id, StockUpdateDto(cantidad))
             Result.success(response.toDomain())
         } catch (e: Exception) {
