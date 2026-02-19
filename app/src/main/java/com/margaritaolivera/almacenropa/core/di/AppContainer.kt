@@ -1,6 +1,5 @@
 package com.margaritaolivera.almacenropa.core.di
 
-
 import android.content.Context
 import com.margaritaolivera.almacenropa.core.network.WarehouseApi
 import okhttp3.OkHttpClient
@@ -13,7 +12,7 @@ class AppContainer(private val context: Context) {
     // URL base de tu API
     private val baseUrl = "https://api-almacen.margaritaydidi.xyz/api/"
 
-    // Variable para almacenar el token en memoria durante la sesión
+    // Variable para almacenar el token en memoria
     var sessionToken: String? = null
 
     // Cliente HTTP con Interceptor para añadir el Token automáticamente
@@ -22,7 +21,8 @@ class AppContainer(private val context: Context) {
             val original = chain.request()
             val requestBuilder = original.newBuilder()
 
-            // Si tenemos token, lo agregamos al header
+            // MAGIA AQUÍ: Si hay token, se pega a la petición.
+            // Esto es lo que separa los datos de un usuario de otro.
             sessionToken?.let { token ->
                 requestBuilder.header("Authorization", "Bearer $token")
             }
@@ -35,16 +35,16 @@ class AppContainer(private val context: Context) {
 
     private val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(baseUrl)
-        .client(okHttpClient) // Usamos nuestro cliente personalizado
+        .client(okHttpClient)
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    // Instancia única de la API
     val warehouseApi: WarehouseApi by lazy {
         retrofit.create(WarehouseApi::class.java)
     }
 
-    // Aquí inicializaremos los repositorios en los siguientes pasos
-    // val authRepository: AuthRepository by lazy { ... }
-    // val inventoryRepository: InventoryRepository by lazy { ... }
+    // Función para borrar datos al cerrar sesión
+    fun logout() {
+        sessionToken = null
+    }
 }

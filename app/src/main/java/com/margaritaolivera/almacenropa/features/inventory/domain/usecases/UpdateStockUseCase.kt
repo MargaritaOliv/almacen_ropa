@@ -4,6 +4,5 @@ import com.margaritaolivera.almacenropa.features.inventory.domain.repositories.I
 import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prenda
 
 class UpdateStockUseCase(private val repository: InventoryRepository) {
-    // cantidad puede ser positivo (sumar) o negativo (restar)
     suspend operator fun invoke(id: Int, cantidad: Int): Result<Prenda> = repository.updateStock(id, cantidad)
 }

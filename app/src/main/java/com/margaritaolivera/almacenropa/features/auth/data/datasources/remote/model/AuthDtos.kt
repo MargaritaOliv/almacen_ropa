@@ -16,7 +16,7 @@ data class RegisterRequest(
 
 // Respuesta de Auth (contiene el token y usuario)
 data class AuthResponse(
-    val token: String,
+    val token: String? = null,
     val user: UserDto? = null,
     val msg: String? = null, // Para mensajes de error o éxito
     val userId: Int? = null   // En registro devuelve userId

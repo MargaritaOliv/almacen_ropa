@@ -2,6 +2,7 @@ package com.margaritaolivera.almacenropa.features.inventory.presentation.viewmod
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prenda
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.DeletePrendaUseCase
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.GetPrendasUseCase
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.UpdateStockUseCase
@@ -20,6 +21,11 @@ class InventoryViewModel(
     private val _uiState = MutableStateFlow(InventoryUiState())
     val uiState = _uiState.asStateFlow()
 
+    // Lista completa original (sin filtrar)
+    private var allPrendas: List<Prenda> = emptyList()
+    // Texto de búsqueda actual
+    private var currentQuery: String = ""
+
     init {
         loadPrendas()
     }
@@ -29,7 +35,9 @@ class InventoryViewModel(
         viewModelScope.launch {
             getPrendasUseCase().fold(
                 onSuccess = { lista ->
-                    _uiState.update { it.copy(isLoading = false, prendas = lista) }
+                    allPrendas = lista
+                    // Aplicamos filtro si ya había algo escrito, si no, mostramos todo
+                    filterPrendas(currentQuery)
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(isLoading = false, error = error.message ?: "Error al cargar") }
@@ -38,25 +46,38 @@ class InventoryViewModel(
         }
     }
 
+    fun onSearchQueryChanged(query: String) {
+        currentQuery = query
+        filterPrendas(query)
+    }
+
+    private fun filterPrendas(query: String) {
+        val filtered = if (query.isBlank()) {
+            allPrendas
+        } else {
+            allPrendas.filter {
+                it.nombre.contains(query, ignoreCase = true) ||
+                        it.categoria.contains(query, ignoreCase = true)
+            }
+        }
+        _uiState.update { it.copy(isLoading = false, prendas = filtered) }
+    }
+
     fun deletePrenda(id: Int) {
         viewModelScope.launch {
-            // Optimistic update: podríamos quitarlo de la lista localmente primero,
-            // pero lo haremos recargando para asegurar consistencia.
-            deletePrendaUseCase(id).onSuccess {
-                loadPrendas()
-            }.onFailure {
-                _uiState.update { state -> state.copy(error = "No se pudo eliminar") }
-            }
+            deletePrendaUseCase(id).fold(
+                onSuccess = { loadPrendas() },
+                onFailure = { _uiState.update { state -> state.copy(error = "No se pudo eliminar") } }
+            )
         }
     }
 
     fun addStock(id: Int, cantidad: Int) {
         viewModelScope.launch {
-            updateStockUseCase(id, cantidad).onSuccess {
-                loadPrendas() // Recargar para ver el stock actualizado
-            }.onFailure {
-                _uiState.update { state -> state.copy(error = "Error al actualizar stock") }
-            }
+            updateStockUseCase(id, cantidad).fold(
+                onSuccess = { loadPrendas() },
+                onFailure = { _uiState.update { state -> state.copy(error = "Error al actualizar stock") } }
+            )
         }
     }
 }

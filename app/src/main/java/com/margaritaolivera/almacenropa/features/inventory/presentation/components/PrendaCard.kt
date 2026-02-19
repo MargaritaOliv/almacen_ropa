@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,6 +17,7 @@ import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prend
 fun PrendaCard(
     prenda: Prenda,
     onAddStock: () -> Unit,
+    onEdit: () -> Unit,   // <--- Agregamos este parámetro que faltaba
     onDelete: () -> Unit
 ) {
     Card(
@@ -41,13 +43,22 @@ fun PrendaCard(
                     Text(text = "${prenda.categoria} • Talla: ${prenda.talla}")
                 }
 
-                // Botón Eliminar
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Eliminar",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+                // Botones de Acción (Editar y Eliminar)
+                Row {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Editar",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Eliminar",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
 
@@ -71,7 +82,6 @@ fun PrendaCard(
                         modifier = Modifier.padding(end = 8.dp)
                     )
 
-                    // Botón añadir stock rápido (+1)
                     FilledTonalButton(
                         onClick = onAddStock,
                         contentPadding = PaddingValues(horizontal = 8.dp),

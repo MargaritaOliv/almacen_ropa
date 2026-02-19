@@ -9,6 +9,6 @@ fun AuthResponse.toDomain(): User {
     return User(
         id = this.user?.id ?: this.userId ?: 0,
         nombre = this.user?.nombre ?: "Usuario",
-        token = this.token
+        token = this.token ?: ""
     )
 }

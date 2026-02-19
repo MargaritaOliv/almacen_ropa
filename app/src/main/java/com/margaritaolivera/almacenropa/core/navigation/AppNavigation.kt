@@ -2,9 +2,11 @@ package com.margaritaolivera.almacenropa.core.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.margaritaolivera.almacenropa.features.auth.di.AuthModule
 import com.margaritaolivera.almacenropa.features.auth.presentation.screens.LoginScreen
 import com.margaritaolivera.almacenropa.features.auth.presentation.screens.RegisterScreen
@@ -24,7 +26,6 @@ fun AppNavigation(
         startDestination = AppScreens.Login.route
     ) {
 
-        // --- AUTH ---
         composable(AppScreens.Login.route) {
             LoginScreen(
                 viewModel = viewModel(factory = authModule.provideAuthViewModelFactory()),
@@ -33,9 +34,7 @@ fun AppNavigation(
                         popUpTo(AppScreens.Login.route) { inclusive = true }
                     }
                 },
-                onNavigateToRegister = {
-                    navController.navigate(AppScreens.Register.route)
-                }
+                onNavigateToRegister = { navController.navigate(AppScreens.Register.route) }
             )
         }
 
@@ -47,12 +46,15 @@ fun AppNavigation(
             )
         }
 
-        // --- INVENTORY ---
+
         composable(AppScreens.Dashboard.route) {
             DashboardScreen(
                 viewModel = viewModel(factory = inventoryModule.provideInventoryViewModelFactory()),
                 onNavigateToCreate = {
-                    navController.navigate(AppScreens.PrendaForm.route)
+                    navController.navigate(AppScreens.PrendaForm.createRoute(null))
+                },
+                onNavigateToEdit = { id ->
+                    navController.navigate(AppScreens.PrendaForm.createRoute(id))
                 },
                 onLogout = {
                     navController.navigate(AppScreens.Login.route) {
@@ -62,12 +64,19 @@ fun AppNavigation(
             )
         }
 
-        composable(AppScreens.PrendaForm.route) {
+        composable(
+            route = AppScreens.PrendaForm.route,
+            arguments = listOf(navArgument("id") {
+                type = NavType.IntType
+                defaultValue = -1
+            })
+        ) { backStackEntry ->
+            val id = backStackEntry.arguments?.getInt("id") ?: -1
+
             PrendaFormScreen(
                 viewModel = viewModel(factory = inventoryModule.provideFormViewModelFactory()),
-                onBack = {
-                    navController.popBackStack()
-                }
+                prendaId = if (id != -1) id else null,
+                onBack = { navController.popBackStack() }
             )
         }
     }

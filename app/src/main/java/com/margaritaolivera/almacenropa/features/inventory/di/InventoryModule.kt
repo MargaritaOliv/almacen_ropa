@@ -12,7 +12,6 @@ class InventoryModule(private val appContainer: AppContainer) {
         InventoryRepositoryImpl(appContainer)
     }
 
-    // Factory para el Dashboard
     fun provideInventoryViewModelFactory(): InventoryViewModelFactory {
         return InventoryViewModelFactory(
             GetPrendasUseCase(repository),
@@ -21,10 +20,11 @@ class InventoryModule(private val appContainer: AppContainer) {
         )
     }
 
-    // Factory para el Formulario (Nuevo)
     fun provideFormViewModelFactory(): FormViewModelFactory {
         return FormViewModelFactory(
-            CreatePrendaUseCase(repository)
+            CreatePrendaUseCase(repository),
+            GetPrendaByIdUseCase(repository),
+            UpdatePrendaUseCase(repository)
         )
     }
 }
