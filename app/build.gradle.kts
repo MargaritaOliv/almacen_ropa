@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt.android)
+    id("kotlin-kapt")
 }
 
 android {
@@ -64,4 +66,10 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
     implementation("androidx.compose.material:material-icons-extended:1.6.8")
     implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+
+
+    implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
+
 }

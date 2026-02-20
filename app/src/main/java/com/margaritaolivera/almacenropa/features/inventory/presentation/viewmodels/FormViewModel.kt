@@ -6,12 +6,15 @@ import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prend
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.CreatePrendaUseCase
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.GetPrendaByIdUseCase
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.UpdatePrendaUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class FormViewModel(
+@HiltViewModel
+class FormViewModel @Inject constructor(
     private val createPrendaUseCase: CreatePrendaUseCase,
     private val getPrendaByIdUseCase: GetPrendaByIdUseCase,
     private val updatePrendaUseCase: UpdatePrendaUseCase
@@ -19,10 +22,8 @@ class FormViewModel(
 
     private val _uiState = MutableStateFlow(FormUiState())
     val uiState = _uiState.asStateFlow()
-
     private var currentId: Int? = null
 
-    // Cargar datos si es edición
     fun loadPrenda(id: Int) {
         if (currentId == id) return
         currentId = id
@@ -32,10 +33,7 @@ class FormViewModel(
             getPrendaByIdUseCase(id).fold(
                 onSuccess = { prenda ->
                     _uiState.update {
-                        it.copy(
-                            isLoading = false,
-                            initialPrenda = prenda // Guardamos la prenda aquí
-                        )
+                        it.copy(isLoading = false, initialPrenda = prenda)
                     }
                 },
                 onFailure = {

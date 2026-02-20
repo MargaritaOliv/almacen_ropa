@@ -1,15 +1,16 @@
 package com.margaritaolivera.almacenropa.features.inventory.data.repositories
 
-import com.margaritaolivera.almacenropa.core.di.AppContainer
+import com.margaritaolivera.almacenropa.core.network.WarehouseApi
 import com.margaritaolivera.almacenropa.features.inventory.data.datasources.remote.mapper.toDomain
 import com.margaritaolivera.almacenropa.features.inventory.data.datasources.remote.mapper.toDto
 import com.margaritaolivera.almacenropa.features.inventory.data.datasources.remote.model.StockUpdateDto
 import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prenda
 import com.margaritaolivera.almacenropa.features.inventory.domain.repositories.InventoryRepository
+import javax.inject.Inject
 
-class InventoryRepositoryImpl(private val appContainer: AppContainer) : InventoryRepository {
-
-    private val api = appContainer.warehouseApi
+class InventoryRepositoryImpl @Inject constructor(
+    private val api: WarehouseApi
+) : InventoryRepository {
 
     override suspend fun getPrendas(): Result<List<Prenda>> {
         return try {

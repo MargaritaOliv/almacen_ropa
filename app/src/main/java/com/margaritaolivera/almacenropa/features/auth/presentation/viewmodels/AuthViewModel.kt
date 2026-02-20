@@ -5,12 +5,15 @@ import androidx.lifecycle.viewModelScope
 import com.margaritaolivera.almacenropa.features.auth.domain.usecases.LoginUseCase
 import com.margaritaolivera.almacenropa.features.auth.domain.usecases.RegisterUseCase
 import com.margaritaolivera.almacenropa.features.auth.presentation.screens.AuthUiState
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class AuthViewModel(
+@HiltViewModel
+class AuthViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val registerUseCase: RegisterUseCase
 ) : ViewModel() {
@@ -26,7 +29,7 @@ class AuthViewModel(
                     _uiState.update { it.copy(isLoading = false, isSuccess = true) }
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(isLoading = false, error = "Error: Credenciales inválidas o servidor caído") }
+                    _uiState.update { it.copy(isLoading = false, error = "Error: Credenciales inválidas") }
                 }
             )
         }
@@ -37,8 +40,6 @@ class AuthViewModel(
         viewModelScope.launch {
             registerUseCase(nombre, email, pass).fold(
                 onSuccess = {
-                    // Nota: Asumimos que registrarse es exitoso pero quizás requiera login manual,
-                    // o navegación directa. Marcamos success.
                     _uiState.update { it.copy(isLoading = false, isSuccess = true) }
                 },
                 onFailure = { error ->
@@ -48,7 +49,6 @@ class AuthViewModel(
         }
     }
 
-    // Resetear estado (útil al navegar entre login y registro)
     fun resetState() {
         _uiState.update { AuthUiState() }
     }
