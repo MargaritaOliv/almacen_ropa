@@ -15,22 +15,20 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToRegister: () -> Unit
 ) {
-    // 1. Observamos el estado del ViewModel
+
     val state by viewModel.uiState.collectAsState()
 
-    // 2. Estados locales para los campos de texto
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    // 3. Reacción ante el éxito (Efecto secundario)
     LaunchedEffect(state.isSuccess) {
         if (state.isSuccess) {
             onLoginSuccess()
-            viewModel.resetState() // Limpiamos estado para que al volver no intente navegar de nuevo
+            viewModel.resetState()
         }
     }
 
-    // 4. Estructura UI
+
     Column(
         modifier = Modifier
             .fillMaxSize()

@@ -7,12 +7,15 @@ import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.Delet
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.GetPrendasUseCase
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.UpdateStockUseCase
 import com.margaritaolivera.almacenropa.features.inventory.presentation.screens.InventoryUiState
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-class InventoryViewModel(
+@HiltViewModel
+class InventoryViewModel @Inject constructor(
     private val getPrendasUseCase: GetPrendasUseCase,
     private val deletePrendaUseCase: DeletePrendaUseCase,
     private val updateStockUseCase: UpdateStockUseCase
@@ -21,9 +24,8 @@ class InventoryViewModel(
     private val _uiState = MutableStateFlow(InventoryUiState())
     val uiState = _uiState.asStateFlow()
 
-    // Lista completa original (sin filtrar)
     private var allPrendas: List<Prenda> = emptyList()
-    // Texto de búsqueda actual
+
     private var currentQuery: String = ""
 
     init {
@@ -36,11 +38,12 @@ class InventoryViewModel(
             getPrendasUseCase().fold(
                 onSuccess = { lista ->
                     allPrendas = lista
-                    // Aplicamos filtro si ya había algo escrito, si no, mostramos todo
                     filterPrendas(currentQuery)
                 },
                 onFailure = { error ->
-                    _uiState.update { it.copy(isLoading = false, error = error.message ?: "Error al cargar") }
+                    _uiState.update {
+                        it.copy(isLoading = false, error = error.message ?: "Error al cargar prendas")
+                    }
                 }
             )
         }
@@ -66,8 +69,12 @@ class InventoryViewModel(
     fun deletePrenda(id: Int) {
         viewModelScope.launch {
             deletePrendaUseCase(id).fold(
-                onSuccess = { loadPrendas() },
-                onFailure = { _uiState.update { state -> state.copy(error = "No se pudo eliminar") } }
+                onSuccess = {
+                    loadPrendas()
+                },
+                onFailure = {
+                    _uiState.update { state -> state.copy(error = "No se pudo eliminar la prenda") }
+                }
             )
         }
     }
@@ -75,8 +82,12 @@ class InventoryViewModel(
     fun addStock(id: Int, cantidad: Int) {
         viewModelScope.launch {
             updateStockUseCase(id, cantidad).fold(
-                onSuccess = { loadPrendas() },
-                onFailure = { _uiState.update { state -> state.copy(error = "Error al actualizar stock") } }
+                onSuccess = {
+                    loadPrendas()
+                },
+                onFailure = {
+                    _uiState.update { state -> state.copy(error = "Error al actualizar stock") }
+                }
             )
         }
     }
