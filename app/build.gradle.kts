@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.hilt.android)
     id("kotlin-kapt")
+    alias(libs.plugins.devtools.ksp)
 }
 
 android {
@@ -68,8 +69,8 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.4.0")
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
-
-
     implementation("androidx.hilt:hilt-navigation-compose:1.2.0")
-
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 }

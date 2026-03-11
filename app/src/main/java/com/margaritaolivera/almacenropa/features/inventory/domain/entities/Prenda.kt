@@ -6,5 +6,6 @@ data class Prenda(
     val categoria: String,
     val talla: String,
     val precio: Double,
-    val stock: Int
+    val stock: Int,
+    val imagen: String? = null
 )

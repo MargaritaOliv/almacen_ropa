@@ -6,6 +6,11 @@ import com.margaritaolivera.almacenropa.features.inventory.data.datasources.remo
 import com.margaritaolivera.almacenropa.features.inventory.data.datasources.remote.model.StockUpdateDto
 import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prenda
 import com.margaritaolivera.almacenropa.features.inventory.domain.repositories.InventoryRepository
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 import javax.inject.Inject
 
 class InventoryRepositoryImpl @Inject constructor(
@@ -32,9 +37,27 @@ class InventoryRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun createPrenda(prenda: Prenda): Result<Prenda> {
+    override suspend fun createPrenda(prenda: Prenda, imageFile: File?): Result<Prenda> {
         return try {
-            val response = api.createPrenda(prenda.toDto())
+            val nombreBody = prenda.nombre.toRequestBody("text/plain".toMediaTypeOrNull())
+            val categoriaBody = prenda.categoria.toRequestBody("text/plain".toMediaTypeOrNull())
+            val tallaBody = prenda.talla.toRequestBody("text/plain".toMediaTypeOrNull())
+            val precioBody = prenda.precio.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            val stockBody = prenda.stock.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+
+            val imagenPart = imageFile?.let {
+                val requestFile = it.asRequestBody("image/*".toMediaTypeOrNull())
+                MultipartBody.Part.createFormData("imagen", it.name, requestFile)
+            }
+
+            val response = api.createPrenda(
+                nombre = nombreBody,
+                categoria = categoriaBody,
+                talla = tallaBody,
+                precio = precioBody,
+                stock = stockBody,
+                imagen = imagenPart
+            )
             Result.success(response.toDomain())
         } catch (e: Exception) {
             Result.failure(e)

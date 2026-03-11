@@ -10,7 +10,8 @@ fun PrendaDto.toDomain(): Prenda {
         categoria = this.categoria ?: "Sin categoría",
         talla = this.talla ?: "N/A",
         precio = this.precio,
-        stock = this.stock
+        stock = this.stock,
+        imagen = this.imagen
     )
 }
 
@@ -21,6 +22,7 @@ fun Prenda.toDto(): PrendaDto {
         categoria = this.categoria,
         talla = this.talla,
         precio = this.precio,
-        stock = this.stock
+        stock = this.stock,
+        imagen = this.imagen
     )
 }

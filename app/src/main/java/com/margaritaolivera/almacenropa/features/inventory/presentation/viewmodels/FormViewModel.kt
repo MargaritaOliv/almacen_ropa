@@ -2,22 +2,27 @@ package com.margaritaolivera.almacenropa.features.inventory.presentation.viewmod
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.margaritaolivera.almacenropa.core.hardware.domain.FlashManager
+import com.margaritaolivera.almacenropa.core.hardware.domain.VibrationManager
 import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prenda
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.CreatePrendaUseCase
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.GetPrendaByIdUseCase
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.UpdatePrendaUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
+import javax.inject.Inject
 
 @HiltViewModel
 class FormViewModel @Inject constructor(
     private val createPrendaUseCase: CreatePrendaUseCase,
     private val getPrendaByIdUseCase: GetPrendaByIdUseCase,
-    private val updatePrendaUseCase: UpdatePrendaUseCase
+    private val updatePrendaUseCase: UpdatePrendaUseCase,
+    private val vibrationManager: VibrationManager,
+    private val flashManager: FlashManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(FormUiState())
@@ -32,9 +37,7 @@ class FormViewModel @Inject constructor(
         viewModelScope.launch {
             getPrendaByIdUseCase(id).fold(
                 onSuccess = { prenda ->
-                    _uiState.update {
-                        it.copy(isLoading = false, initialPrenda = prenda)
-                    }
+                    _uiState.update { it.copy(isLoading = false, initialPrenda = prenda) }
                 },
                 onFailure = {
                     _uiState.update { it.copy(isLoading = false, error = "Error al cargar prenda") }
@@ -43,7 +46,10 @@ class FormViewModel @Inject constructor(
         }
     }
 
-    fun savePrenda(nombre: String, categoria: String, talla: String, precioStr: String, stockStr: String) {
+    fun savePrenda(nombre: String, categoria: String, talla: String, precioStr: String, stockStr: String, imageFile: File?) {
+
+        vibrationManager.vibrate(50)
+
         if (nombre.isBlank() || categoria.isBlank() || talla.isBlank()) {
             _uiState.update { it.copy(error = "Completa todos los campos") }
             return
@@ -69,7 +75,7 @@ class FormViewModel @Inject constructor(
             )
 
             val result = if (currentId == null || currentId == 0) {
-                createPrendaUseCase(prenda).map { true }
+                createPrendaUseCase(prenda, imageFile).map { true }
             } else {
                 updatePrendaUseCase(prenda)
             }
@@ -77,6 +83,13 @@ class FormViewModel @Inject constructor(
             result.fold(
                 onSuccess = {
                     _uiState.update { it.copy(isLoading = false, isSuccess = true) }
+
+                    viewModelScope.launch {
+                        vibrationManager.vibrate(200)
+                        if (flashManager.hasFlash()) {
+                            flashManager.blink(300)
+                        }
+                    }
                 },
                 onFailure = { error ->
                     _uiState.update { it.copy(isLoading = false, error = error.message ?: "Error al guardar") }

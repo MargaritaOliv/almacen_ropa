@@ -9,11 +9,11 @@ data class PrendaDto(
     @SerializedName("talla") val talla: String?,
     @SerializedName("precio") val precio: Double,
     @SerializedName("stock") val stock: Int,
+    @SerializedName("imagen") val imagen: String? = null,
     @SerializedName("createdAt") val createdAt: String? = null,
     @SerializedName("updatedAt") val updatedAt: String? = null
 )
 
-// Movemos esta clase aquí porque pertenece al contexto de Inventario
 data class StockUpdateDto(
     @SerializedName("cantidad") val cantidad: Int
 )
