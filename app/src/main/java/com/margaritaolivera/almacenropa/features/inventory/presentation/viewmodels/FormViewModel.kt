@@ -77,7 +77,7 @@ class FormViewModel @Inject constructor(
             val result = if (currentId == null || currentId == 0) {
                 createPrendaUseCase(prenda, imageFile).map { true }
             } else {
-                updatePrendaUseCase(prenda)
+                updatePrendaUseCase(prenda, imageFile)
             }
 
             result.fold(

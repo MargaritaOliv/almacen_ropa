@@ -7,7 +7,7 @@ import com.margaritaolivera.almacenropa.core.database.entities.PrendaEntity
 
 @Database(
     entities =[PrendaEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

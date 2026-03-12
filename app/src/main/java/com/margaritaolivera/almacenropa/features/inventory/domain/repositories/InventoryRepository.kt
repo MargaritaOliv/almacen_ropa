@@ -7,7 +7,7 @@ interface InventoryRepository {
     suspend fun getPrendas(): Result<List<Prenda>>
     suspend fun getPrendaById(id: Int): Result<Prenda>
     suspend fun createPrenda(prenda: Prenda, imageFile: File? = null): Result<Prenda>
-    suspend fun updatePrenda(prenda: Prenda): Result<Boolean>
+    suspend fun updatePrenda(prenda: Prenda, imageFile: File? = null): Result<Boolean>
     suspend fun deletePrenda(id: Int): Result<Boolean>
     suspend fun updateStock(id: Int, cantidad: Int): Result<Prenda>
 }

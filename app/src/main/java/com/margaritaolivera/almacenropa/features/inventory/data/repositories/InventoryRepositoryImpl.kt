@@ -1,72 +1,147 @@
 package com.margaritaolivera.almacenropa.features.inventory.data.repositories
 
+import android.util.Log
 import com.margaritaolivera.almacenropa.core.network.WarehouseApi
 import com.margaritaolivera.almacenropa.features.inventory.data.datasources.remote.mapper.toDomain
 import com.margaritaolivera.almacenropa.features.inventory.data.datasources.remote.mapper.toDto
+import com.margaritaolivera.almacenropa.features.inventory.data.datasources.remote.mapper.toEntity
+import com.margaritaolivera.almacenropa.core.database.dao.PrendaDao
+import com.margaritaolivera.almacenropa.core.database.entities.PrendaEntity
 import com.margaritaolivera.almacenropa.features.inventory.data.datasources.remote.model.StockUpdateDto
 import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prenda
 import com.margaritaolivera.almacenropa.features.inventory.domain.repositories.InventoryRepository
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.util.Locale
 import javax.inject.Inject
+import androidx.work.*
+import com.margaritaolivera.almacenropa.features.inventory.data.workers.SyncWorker
+import android.content.Context
+import dagger.hilt.android.qualifiers.ApplicationContext
 
 class InventoryRepositoryImpl @Inject constructor(
-    private val api: WarehouseApi
+    private val api: WarehouseApi,
+    private val dao: PrendaDao,
+    @ApplicationContext private val context: Context
 ) : InventoryRepository {
 
     override suspend fun getPrendas(): Result<List<Prenda>> {
         return try {
             val dtos = api.getPrendas()
-            val prendas = dtos.map { it.toDomain() }
-            Result.success(prendas)
+            val domainList = dtos.map { it.toDomain() }
+            
+            dao.clearSyncedPrendas()
+            dao.insertPrendas(domainList.map { it.toEntity() })
+            
+            // Fusionar con las que están pendientes de subir para que no "desaparezcan"
+            val pending = dao.getPendingPrendas().map { it.toDomain() }
+            Result.success(domainList + pending)
         } catch (e: Exception) {
-            e.printStackTrace()
-            Result.failure(e)
+            val localItems = dao.getAllPrendasList()
+            if (localItems.isNotEmpty()) {
+                Result.success(localItems.map { it.toDomain() })
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
     override suspend fun getPrendaById(id: Int): Result<Prenda> {
         return try {
-            val dto = api.getPrendaById(id)
-            Result.success(dto.toDomain())
+            // Intentar primero local por si es una prenda pendiente
+            val local = dao.getPrendaById(id)
+            if (local != null) {
+                Result.success(local.toDomain())
+            } else {
+                val dto = api.getPrendaById(id)
+                Result.success(dto.toDomain())
+            }
         } catch (e: Exception) {
-            Result.failure(e)
+            // Fallback final a la DB local si falla la red
+            dao.getPrendaById(id)?.let {
+                Result.success(it.toDomain())
+            } ?: Result.failure(e)
         }
     }
 
     override suspend fun createPrenda(prenda: Prenda, imageFile: File?): Result<Prenda> {
         return try {
-            val nombreBody = prenda.nombre.toRequestBody("text/plain".toMediaTypeOrNull())
-            val categoriaBody = prenda.categoria.toRequestBody("text/plain".toMediaTypeOrNull())
-            val tallaBody = prenda.talla.toRequestBody("text/plain".toMediaTypeOrNull())
-            val precioBody = prenda.precio.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-            val stockBody = prenda.stock.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-
             val imagenPart = imageFile?.let {
-                val requestFile = it.asRequestBody("image/*".toMediaTypeOrNull())
+                val requestFile = it.asRequestBody("image/jpeg".toMediaTypeOrNull())
                 MultipartBody.Part.createFormData("imagen", it.name, requestFile)
             }
 
             val response = api.createPrenda(
-                nombre = nombreBody,
-                categoria = categoriaBody,
-                talla = tallaBody,
-                precio = precioBody,
-                stock = stockBody,
+                nombre = prenda.nombre.toPart(),
+                categoria = prenda.categoria.toPart(),
+                talla = prenda.talla.toPart(),
+                precio = String.format(Locale.US, "%.2f", prenda.precio).toPart(),
+                stock = prenda.stock.toString().toPart(),
                 imagen = imagenPart
             )
+
             Result.success(response.toDomain())
         } catch (e: Exception) {
-            Result.failure(e)
+            if (e !is retrofit2.HttpException) {
+                val pendingEntity = prenda.toEntity(isPending = true, localPath = imageFile?.absolutePath)
+                dao.insertPrenda(pendingEntity)
+                
+                // Programar sincronización
+                val constraints = Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+                
+                val syncRequest = OneTimeWorkRequestBuilder<SyncWorker>()
+                    .setConstraints(constraints)
+                    .build()
+                
+                WorkManager.getInstance(context).enqueueUniqueWork(
+                    "SyncWork",
+                    ExistingWorkPolicy.REPLACE,
+                    syncRequest
+                )
+                
+                Result.success(prenda.copy(id = -1))
+            } else {
+                Result.failure(e)
+            }
         }
     }
 
-    override suspend fun updatePrenda(prenda: Prenda): Result<Boolean> {
+    override suspend fun updatePrenda(prenda: Prenda, imageFile: File?): Result<Boolean> {
         return try {
-            api.updatePrenda(prenda.id, prenda.toDto())
+            val localEntity = dao.getPrendaById(prenda.id)
+            
+            // Si es una prenda que aún no se ha subido (pendiente), la actualizamos solo localmente
+            if (localEntity?.isPending == true) {
+                val updatedEntity = prenda.toEntity(
+                    isPending = true, 
+                    localPath = imageFile?.absolutePath ?: localEntity.localPath
+                ).copy(id = localEntity.id) // Mantener la misma clave primaria local
+                
+                dao.insertPrenda(updatedEntity)
+                return Result.success(true)
+            }
+
+            // Si es una prenda remota, intentamos actualizar en el servidor
+            val imagenPart = imageFile?.let {
+                val requestFile = it.asRequestBody("image/jpeg".toMediaTypeOrNull())
+                MultipartBody.Part.createFormData("imagen", it.name, requestFile)
+            }
+
+            api.updatePrenda(
+                id = prenda.id,
+                nombre = prenda.nombre.toPart(),
+                categoria = prenda.categoria.toPart(),
+                talla = prenda.talla.toPart(),
+                precio = String.format(Locale.US, "%.2f", prenda.precio).toPart(),
+                stock = prenda.stock.toString().toPart(),
+                imagen = imagenPart
+            )
             Result.success(true)
         } catch (e: Exception) {
             Result.failure(e)
@@ -89,5 +164,10 @@ class InventoryRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             Result.failure(e)
         }
+    }
+
+
+    private fun String.toPart(): RequestBody {
+        return this.toRequestBody("text/plain".toMediaTypeOrNull())
     }
 }

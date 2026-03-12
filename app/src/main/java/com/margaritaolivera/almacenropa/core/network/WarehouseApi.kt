@@ -34,8 +34,17 @@ interface WarehouseApi {
         @Part imagen: MultipartBody.Part?
     ): PrendaDto
 
+    @Multipart
     @PUT("prendas/{id}")
-    suspend fun updatePrenda(@Path("id") id: Int, @Body prenda: PrendaDto): Map<String, String>
+    suspend fun updatePrenda(
+        @Path("id") id: Int,
+        @Part("nombre") nombre: RequestBody,
+        @Part("categoria") categoria: RequestBody,
+        @Part("talla") talla: RequestBody,
+        @Part("precio") precio: RequestBody,
+        @Part("stock") stock: RequestBody,
+        @Part imagen: MultipartBody.Part?
+    ): Map<String, String>
 
     @DELETE("prendas/{id}")
     suspend fun deletePrenda(@Path("id") id: Int): Map<String, String>
