@@ -51,6 +51,11 @@ fun PrendaFormScreen(
     var stock by rememberSaveable { mutableStateOf("") }
     var isInitialized by rememberSaveable { mutableStateOf(false) }
 
+    var expandedCategoria by remember { mutableStateOf(false) }
+    var expandedTalla by remember { mutableStateOf(false) }
+    val categorias = listOf("Hombre", "Mujer", "Unisex", "Niño/a")
+    val tallas = listOf("S", "M", "L", "XL", "XXL", "Única")
+
     var photoUri by rememberSaveable { mutableStateOf<Uri?>(null) }
     var tempPhotoPath by rememberSaveable { mutableStateOf<String?>(null) }
     var imageUpdateTrigger by rememberSaveable { mutableIntStateOf(0) }
@@ -165,29 +170,87 @@ fun PrendaFormScreen(
             OutlinedTextField(
                 value = nombre,
                 onValueChange = { nombre = it },
-                label = { Text("Nombre de la prenda") },
+                label = { Text("Marca") },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
             )
             
-            OutlinedTextField(
-                value = categoria,
-                onValueChange = { categoria = it },
-                label = { Text("Categoría (Ej. Hombre, Mujer)") },
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
-            
-            OutlinedTextField(
-                value = talla,
-                onValueChange = { talla = it },
-                label = { Text("Talla (S, M, L, XL)") },
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Categoría",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    categorias.forEach { option ->
+                        val isSelected = categoria == option
+                        Surface(
+                            onClick = { categoria = option },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = option,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Talla",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    maxItemsInEachRow = 6
+                ) {
+                    tallas.forEach { option ->
+                        val isSelected = talla == option
+                        Surface(
+                            onClick = { talla = option },
+                            modifier = Modifier
+                                .width(56.dp)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = option,
+                                    fontSize = 14.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlinedTextField(

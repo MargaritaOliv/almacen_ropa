@@ -66,7 +66,7 @@ fun DashboardScreen(
 
     Scaffold(
         topBar = {
-            Column {
+            Column(modifier = Modifier.statusBarsPadding()) {
                Surface(
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth()

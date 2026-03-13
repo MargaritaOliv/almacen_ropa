@@ -140,7 +140,6 @@ fun PrendaCard(
                         contentPadding = PaddingValues(0.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("+1 Stock", fontSize = 12.sp)
                     }
                     
                     IconButton(

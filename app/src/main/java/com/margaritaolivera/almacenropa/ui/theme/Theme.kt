@@ -13,35 +13,37 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.Color
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = CoffeeLight,
+    secondary = CoffeeMedium,
+    tertiary = CoffeeDark,
+    background = Color(0xFF1A1A1A), // Fondo oscuro genérico
+    onBackground = Cream
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40,
-    background = BackgroundColor
-
-    /* Otros colores por defecto si quieres sobreescribir
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = CoffeeDark,
+    onPrimary = Cream,
+    secondary = CoffeeMedium,
+    onSecondary = Cream,
+    tertiary = CoffeeLight,
+    onTertiary = CoffeeDark,
+    background = Cream,
+    onBackground = CoffeeDark,
+    surface = Cream,
+    onSurface = CoffeeDark,
+    surfaceVariant = CoffeeLight.copy(alpha = 0.2f),
+    onSurfaceVariant = CoffeeDark
 )
 
 @Composable
 fun AlmacenRopaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color está disponible en Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false, // Desactivado para usar la paleta personalizada
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
