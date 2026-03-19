@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextAlign
 import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prenda
 import com.margaritaolivera.almacenropa.features.inventory.presentation.components.PrendaCard
 import com.margaritaolivera.almacenropa.features.inventory.presentation.viewmodels.InventoryViewModel
@@ -39,8 +40,37 @@ fun DashboardScreen(
     var prendaToDelete by remember { mutableStateOf<Prenda?>(null) }
     var isSearchActive by remember { mutableStateOf(false) }
 
+    val isOffline by derivedStateOf { state.isOffline }
+    var wasOffline by remember { mutableStateOf(false) }
+    var showBackOnlineBanner by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isOffline) {
+        if (isOffline) {
+            wasOffline = true
+            showBackOnlineBanner = false
+        } else if (wasOffline && !isOffline) {
+            showBackOnlineBanner = true
+            wasOffline = false
+            kotlinx.coroutines.delay(5000)
+            showBackOnlineBanner = false
+        }
+    }
+
     LaunchedEffect(Unit) {
         viewModel.loadPrendas()
+    }
+
+    LaunchedEffect(state.error) {
+        state.error?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            viewModel.clearError()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.syncEvents.collect { nombre ->
+            Toast.makeText(context, "Prenda '$nombre' guardada correctamente", Toast.LENGTH_LONG).show()
+        }
     }
 
     if (prendaToDelete != null) {
@@ -52,8 +82,9 @@ fun DashboardScreen(
                 Button(
                     onClick = {
                         prendaToDelete?.let {
-                            viewModel.deletePrenda(it.id)
-                            Toast.makeText(context, "Eliminado", Toast.LENGTH_SHORT).show()
+                            viewModel.deletePrenda(it.id) {
+                                Toast.makeText(context, "Eliminado", Toast.LENGTH_SHORT).show()
+                            }
                         }
                         prendaToDelete = null
                     },
@@ -140,7 +171,36 @@ fun DashboardScreen(
                 .padding(padding)
                 .fillMaxSize()
         ) {
-            
+            if (state.isOffline) {
+                Surface(
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Estás en modo Offline. Los cambios se sincronizarán más tarde.",
+                        color = MaterialTheme.colorScheme.onError,
+                        modifier = Modifier.padding(8.dp),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+            } else if (showBackOnlineBanner) {
+                Surface(
+                    color = Color(0xFF4CAF50),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Vuelves a tener conexión.",
+                        color = Color.White,
+                        modifier = Modifier.padding(8.dp),
+                        textAlign = TextAlign.Center,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
             Button(
                 onClick = onNavigateToCreate,
                 modifier = Modifier
@@ -156,29 +216,35 @@ fun DashboardScreen(
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(state.prendas) { prenda ->
+                        PrendaCard(
+                            prenda = prenda,
+                            onAddStock = { viewModel.addStock(prenda.id, 1) },
+                            onRemoveStock = {
+                                if (prenda.stock > 0) {
+                                    viewModel.addStock(prenda.id, -1)
+                                } else {
+                                    Toast.makeText(context, "El stock ya es 0", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            onEdit = { onNavigateToEdit(prenda.id) },
+                            onDelete = { prendaToDelete = prenda }
+                        )
+                    }
+                }
+
                 if (state.isLoading) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-                } else if (state.error != null) {
-                    Text(text = state.error!!, modifier = Modifier.align(Alignment.Center))
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(start = 8.dp, end = 8.dp, bottom = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(state.prendas) { prenda ->
-                            PrendaCard(
-                                prenda = prenda,
-                                onAddStock = { viewModel.addStock(prenda.id, 1) },
-                                onEdit = { onNavigateToEdit(prenda.id) },
-                                onDelete = { prendaToDelete = prenda }
-                            )
-                        }
-                    }
-                    if (state.prendas.isEmpty() && !state.isLoading) {
-                        Text("No hay resultados.", modifier = Modifier.align(Alignment.Center), color = Color.Gray)
-                    }
+                }
+
+                if (state.prendas.isEmpty() && !state.isLoading) {
+                    Text("No hay resultados.", modifier = Modifier.align(Alignment.Center), color = Color.Gray)
                 }
             }
         }

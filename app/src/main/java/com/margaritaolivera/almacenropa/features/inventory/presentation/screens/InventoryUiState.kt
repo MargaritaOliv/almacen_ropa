@@ -5,5 +5,6 @@ import com.margaritaolivera.almacenropa.features.inventory.domain.entities.Prend
 data class InventoryUiState(
     val isLoading: Boolean = false,
     val prendas: List<Prenda> = emptyList(),
-    val error: String? = null
+    val error: String? = null,
+    val isOffline: Boolean = false
 )

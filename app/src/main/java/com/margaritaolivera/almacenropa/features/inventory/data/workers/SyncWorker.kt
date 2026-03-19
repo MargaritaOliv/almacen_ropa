@@ -19,6 +19,7 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import com.margaritaolivera.almacenropa.core.network.SyncEventBus
 import java.util.Locale
 
 @HiltWorker
@@ -26,7 +27,8 @@ class SyncWorker @AssistedInject constructor(
     @Assisted context: Context,
     @Assisted workerParams: WorkerParameters,
     private val dao: PrendaDao,
-    private val api: WarehouseApi
+    private val api: WarehouseApi,
+    private val syncEventBus: SyncEventBus
 ) : CoroutineWorker(context, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -67,6 +69,10 @@ class SyncWorker @AssistedInject constructor(
                 Log.e("SyncWorker", "Error subiendo prenda ${entity.nombre} (ID local: ${entity.id}): ${e.message}", e)
                 allSuccess = false
             }
+        }
+
+        if (allSuccess) {
+            syncEventBus.emitSyncFinished()
         }
 
         return if (allSuccess) Result.success() else Result.retry()

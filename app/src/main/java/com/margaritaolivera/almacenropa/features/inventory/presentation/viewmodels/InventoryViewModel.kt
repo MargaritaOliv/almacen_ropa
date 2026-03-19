@@ -7,6 +7,8 @@ import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.Delet
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.GetPrendasUseCase
 import com.margaritaolivera.almacenropa.features.inventory.domain.usecases.UpdateStockUseCase
 import com.margaritaolivera.almacenropa.features.inventory.presentation.screens.InventoryUiState
+import com.margaritaolivera.almacenropa.core.network.NetworkConnectivityObserver
+import com.margaritaolivera.almacenropa.core.network.SyncEventBus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +20,9 @@ import kotlinx.coroutines.launch
 class InventoryViewModel @Inject constructor(
     private val getPrendasUseCase: GetPrendasUseCase,
     private val deletePrendaUseCase: DeletePrendaUseCase,
-    private val updateStockUseCase: UpdateStockUseCase
+    private val updateStockUseCase: UpdateStockUseCase,
+    private val networkConnectivityObserver: NetworkConnectivityObserver,
+    private val syncEventBus: SyncEventBus
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(InventoryUiState())
@@ -28,8 +32,19 @@ class InventoryViewModel @Inject constructor(
 
     private var currentQuery: String = ""
 
+    val syncEvents = syncEventBus.syncEvents
+
     init {
+        observeNetwork()
         loadPrendas()
+    }
+
+    private fun observeNetwork() {
+        viewModelScope.launch {
+            networkConnectivityObserver.observe().collect { isConnected ->
+                _uiState.update { it.copy(isOffline = !isConnected) }
+            }
+        }
     }
 
     fun loadPrendas() {
@@ -66,17 +81,22 @@ class InventoryViewModel @Inject constructor(
         _uiState.update { it.copy(isLoading = false, prendas = filtered) }
     }
 
-    fun deletePrenda(id: Int) {
+    fun deletePrenda(id: Int, onSuccess: () -> Unit) {
         viewModelScope.launch {
             deletePrendaUseCase(id).fold(
                 onSuccess = {
                     loadPrendas()
+                    onSuccess()
                 },
                 onFailure = {
                     _uiState.update { state -> state.copy(error = "No se pudo eliminar la prenda") }
                 }
             )
         }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 
     fun addStock(id: Int, cantidad: Int) {

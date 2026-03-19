@@ -37,7 +37,6 @@ class InventoryRepositoryImpl @Inject constructor(
             dao.clearSyncedPrendas()
             dao.insertPrendas(domainList.map { it.toEntity() })
             
-            // Fusionar con las que están pendientes de subir para que no "desaparezcan"
             val pending = dao.getPendingPrendas().map { it.toDomain() }
             Result.success(domainList + pending)
         } catch (e: Exception) {
@@ -52,7 +51,6 @@ class InventoryRepositoryImpl @Inject constructor(
 
     override suspend fun getPrendaById(id: Int): Result<Prenda> {
         return try {
-            // Intentar primero local por si es una prenda pendiente
             val local = dao.getPrendaById(id)
             if (local != null) {
                 Result.success(local.toDomain())
@@ -61,7 +59,6 @@ class InventoryRepositoryImpl @Inject constructor(
                 Result.success(dto.toDomain())
             }
         } catch (e: Exception) {
-            // Fallback final a la DB local si falla la red
             dao.getPrendaById(id)?.let {
                 Result.success(it.toDomain())
             } ?: Result.failure(e)
@@ -90,7 +87,6 @@ class InventoryRepositoryImpl @Inject constructor(
                 val pendingEntity = prenda.toEntity(isPending = true, localPath = imageFile?.absolutePath)
                 dao.insertPrenda(pendingEntity)
                 
-                // Programar sincronización
                 val constraints = Constraints.Builder()
                     .setRequiredNetworkType(NetworkType.CONNECTED)
                     .build()
@@ -116,18 +112,16 @@ class InventoryRepositoryImpl @Inject constructor(
         return try {
             val localEntity = dao.getPrendaById(prenda.id)
             
-            // Si es una prenda que aún no se ha subido (pendiente), la actualizamos solo localmente
             if (localEntity?.isPending == true) {
                 val updatedEntity = prenda.toEntity(
                     isPending = true, 
                     localPath = imageFile?.absolutePath ?: localEntity.localPath
-                ).copy(id = localEntity.id) // Mantener la misma clave primaria local
+                ).copy(id = localEntity.id)
                 
                 dao.insertPrenda(updatedEntity)
                 return Result.success(true)
             }
 
-            // Si es una prenda remota, intentamos actualizar en el servidor
             val imagenPart = imageFile?.let {
                 val requestFile = it.asRequestBody("image/jpeg".toMediaTypeOrNull())
                 MultipartBody.Part.createFormData("imagen", it.name, requestFile)
@@ -150,6 +144,12 @@ class InventoryRepositoryImpl @Inject constructor(
 
     override suspend fun deletePrenda(id: Int): Result<Boolean> {
         return try {
+            val localEntity = dao.getPrendaById(id)
+            if (localEntity?.isPending == true) {
+                dao.deleteLocalPrendaById(localEntity.id)
+                return Result.success(true)
+            }
+            
             api.deletePrenda(id)
             Result.success(true)
         } catch (e: Exception) {
@@ -159,6 +159,14 @@ class InventoryRepositoryImpl @Inject constructor(
 
     override suspend fun updateStock(id: Int, cantidad: Int): Result<Prenda> {
         return try {
+            val localEntity = dao.getPrendaById(id)
+            if (localEntity?.isPending == true) {
+                val newStock = localEntity.stock + cantidad
+                val updatedEntity = localEntity.copy(stock = newStock)
+                dao.insertPrenda(updatedEntity)
+                return Result.success(updatedEntity.toDomain())
+            }
+
             val response = api.updateStock(id, StockUpdateDto(cantidad))
             Result.success(response.toDomain())
         } catch (e: Exception) {
